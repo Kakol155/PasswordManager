@@ -1,18 +1,21 @@
+const mysql = require('mysql');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+
 const app = express();
 const port = 3000;
+const encoder = bodyParser.urlencoded({ extended: false });
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use('/assets', express.static('assets'));
 
-const mysql = require('mysql');
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'test_db'
+    database: 'test_db',
 });
 
 connection.connect(err => {
@@ -41,6 +44,30 @@ connection.query(createTableQuery, err => {
     }
 });
 
+app.get('/', function (req, res) {
+    res.sendFile(__dirname + '/index.html');
+});
+
+app.post('/', encoder, function (req, res) {
+    let username = req.body.username;
+    let password = req.body.password;
+
+    connection.query(
+        'SELECT * FROM userdata WHERE login = ? and password = ?',
+        [username, password],
+        function (error, results, fields) {
+            if (error) throw error;
+
+            if (results.length > 0) {
+                res.redirect('/homepage');
+            } else {
+                res.redirect('/');
+            }
+            res.end();
+        }
+    );
+});
+
 app.post('/save-data', (req, res) => {
     const data = req.body;
 
@@ -54,6 +81,10 @@ app.post('/save-data', (req, res) => {
             res.json({ message: 'Data saved successfully' });
         }
     });
+});
+
+app.get('/homepage', function (req, res) {
+    res.sendFile(__dirname + '/homepage.html');
 });
 
 app.listen(port, () => {
